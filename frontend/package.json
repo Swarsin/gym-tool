@@ -1,0 +1,37 @@
+{
+  "name": "biomechanics-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "test:browser": "npm run build && playwright test --project=chromium",
+    "test:browser:all": "npm run build && playwright test",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.4",
+    "@types/three": "^0.185.4",
+    "lucide-react": "^0.292.0",
+    "mediabunny": "1.61.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "tsx": "4.23.15",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
+  }
+}

@@ -1,0 +1,74 @@
+name: Build, Push, and Deploy to Azure Container Apps
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies for testing (OpenCV & FFmpeg)
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+            libgl1 \
+            libegl1 \
+            libgles2 \
+            libglib2.0-0 \
+            ffmpeg
+
+      - name: Install Python test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run fast offline test suite
+        run: |
+          python -m unittest discover -s backend/tests -p "test_*.py"
+
+      - name: Log in to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: swarsingymrc.azurecr.io
+          username: swarsingymrc
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            swarsingymrc.azurecr.io/gym-backend:latest
+            swarsingymrc.azurecr.io/gym-backend:${{ github.sha }}
+
+      - name: Log in to Azure via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az containerapp update \
+              --name gym-backend \
+              --resource-group gym-backend-rg \
+              --image swarsingymrc.azurecr.io/gym-backend:${{ github.sha }}
