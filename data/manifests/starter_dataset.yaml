@@ -1,212 +1,211 @@
 version: '1.0'
 total_clips: 16
 clips:
-  # ---------------------------------------------------------
-  # 1. Internal Benchmark Clips (Lifter: swarsin)
-  # ---------------------------------------------------------
-  - clip_id: bench_pullup_log61
-    exercise: Pull-Up / Chin-Up
-    form_label: good_form
-    source_url: data/benchmark_videos/pullup_online_log61.mp4
-    start_time: 0.0
-    end_time: 12.0
-    lifter_id: swarsin
-    camera_angle: 45_degree
-    split: train
-    verified: true
-    notes: Internal benchmark log 61, strict pull-up set
-
-  - clip_id: bench_pullup_log63
-    exercise: Pull-Up / Chin-Up
-    form_label: good_form
-    source_url: data/benchmark_videos/pullup_online_log63.mp4
-    start_time: 0.0
-    end_time: 14.0
-    lifter_id: swarsin
-    camera_angle: 45_degree
-    split: train
-    verified: true
-    notes: Internal benchmark log 63, strict pull-up set
-
-  - clip_id: bench_latpulldown_log57
-    exercise: Lat Pulldown
-    form_label: good_form
-    source_url: data/benchmark_videos/lat_pulldown_online_log57.mp4
-    start_time: 0.0
-    end_time: 18.0
-    lifter_id: swarsin
-    camera_angle: side
-    split: train
-    verified: true
-    notes: Internal benchmark log 57, neutral grip lat pulldown
-
-  - clip_id: bench_latpulldown_log64
-    exercise: Lat Pulldown
-    form_label: good_form
-    source_url: data/benchmark_videos/lat_pulldown_online_log64.mp4
-    start_time: 0.0
-    end_time: 12.0
-    lifter_id: swarsin
-    camera_angle: side
-    split: train
-    verified: true
-    notes: Internal benchmark log 64, wide grip pulldown
-
-  # ---------------------------------------------------------
-  # 2. Pull-Up External Diversity & Form Flaws
-  # ---------------------------------------------------------
-  - clip_id: ext_pullup_clean_athleanx
-    exercise: Pull-Up / Chin-Up
-    form_label: good_form
-    source_url: https://www.youtube.com/watch?v=eGo4IYlbE5g
-    start_time: 01:05
-    end_time: 01:18
-    lifter_id: lifter_athleanx
-    camera_angle: side
-    split: val
-    verified: false
-    notes: Strict hollow body pull-up full extension
-
-  - clip_id: ext_pullup_kipping_flaw
-    exercise: Pull-Up / Chin-Up
-    form_label: torso_swing
-    source_url: https://www.youtube.com/watch?v=eGo4IYlbE5g
-    start_time: 02:40
-    end_time: 02:52
-    lifter_id: lifter_athleanx
-    camera_angle: side
-    split: val
-    verified: false
-    notes: Form flaw demonstration - excessive hip swing and kipping momentum
-
-  - clip_id: ext_pullup_partial_rom
-    exercise: Pull-Up / Chin-Up
-    form_label: partial_rom
-    source_url: https://www.youtube.com/watch?v=eGo4IYlbE5g
-    start_time: 03:15
-    end_time: 03:26
-    lifter_id: lifter_athleanx
-    camera_angle: side
-    split: val
-    verified: false
-    notes: Form flaw demonstration - short chin height and half lockout
-
-  # ---------------------------------------------------------
-  # 3. Lat Pulldown Diversity & Form Flaws
-  # ---------------------------------------------------------
-  - clip_id: ext_latpulldown_clean_nippard
-    exercise: Lat Pulldown
-    form_label: good_form
-    source_url: https://www.youtube.com/watch?v=CAwf7n6Luuc
-    start_time: 01:10
-    end_time: 01:24
-    lifter_id: lifter_nippard
-    camera_angle: side
-    split: test
-    verified: false
-    notes: Strict slight torso lean with chest drive to upper sternum
-
-  - clip_id: ext_latpulldown_swing_flaw
-    exercise: Lat Pulldown
-    form_label: torso_swing
-    source_url: https://www.youtube.com/watch?v=CAwf7n6Luuc
-    start_time: 02:22
-    end_time: 02:35
-    lifter_id: lifter_nippard
-    camera_angle: side
-    split: test
-    verified: false
-    notes: Form flaw demonstration - violent lumbar extension swinging back 45 degrees
-
-  - clip_id: ext_latpulldown_behindneck_partial
-    exercise: Lat Pulldown
-    form_label: partial_rom
-    source_url: https://www.youtube.com/watch?v=CAwf7n6Luuc
-    start_time: 03:05
-    end_time: 03:16
-    lifter_id: lifter_nippard
-    camera_angle: front
-    split: test
-    verified: false
-    notes: Short range of motion without full overhead stretch
-
-  # ---------------------------------------------------------
-  # 4. Barbell Row Diversity & Form Flaws
-  # ---------------------------------------------------------
-  - clip_id: ext_bbrow_clean_rp
-    exercise: Barbell Row
-    form_label: good_form
-    source_url: https://www.youtube.com/watch?v=G8l_8chR5BE
-    start_time: 00:48
-    end_time: 01:02
-    lifter_id: lifter_rp_mike
-    camera_angle: side
-    split: train
-    verified: false
-    notes: Strict bent-over row, fixed hip hinge angle
-
-  - clip_id: ext_bbrow_torso_heave
-    exercise: Barbell Row
-    form_label: torso_swing
-    source_url: https://www.youtube.com/watch?v=G8l_8chR5BE
-    start_time: 01:55
-    end_time: 02:08
-    lifter_id: lifter_rp_mike
-    camera_angle: side
-    split: train
-    verified: false
-    notes: Standing up during concentric, torso angle rises 30+ degrees
-
-  # ---------------------------------------------------------
-  # 5. Seated Cable Row Diversity & Form Flaws
-  # ---------------------------------------------------------
-  - clip_id: ext_seatedrow_clean_buffdudes
-    exercise: Seated Cable Row
-    form_label: good_form
-    source_url: https://www.youtube.com/watch?v=GZbfZ033f74
-    start_time: 00:30
-    end_time: 00:44
-    lifter_id: lifter_buffdudes
-    camera_angle: side
-    split: train
-    verified: false
-    notes: Strict neutral posture with scapular retraction
-
-  - clip_id: ext_seatedrow_momentum_flaw
-    exercise: Seated Cable Row
-    form_label: torso_swing
-    source_url: https://www.youtube.com/watch?v=GZbfZ033f74
-    start_time: 01:40
-    end_time: 01:52
-    lifter_id: lifter_buffdudes
-    camera_angle: side
-    split: train
-    verified: false
-    notes: Excessive rocking forward and backward with lower back momentum
-
-  # ---------------------------------------------------------
-  # 6. Single-Arm Dumbbell Row Diversity & Asymmetry
-  # ---------------------------------------------------------
-  - clip_id: ext_dbrow_clean_scott
-    exercise: Single-Arm Dumbbell Row
-    form_label: good_form
-    source_url: https://www.youtube.com/watch?v=pYcpY20QaE8
-    start_time: 00:45
-    end_time: 00:58
-    lifter_id: lifter_scott_herman
-    camera_angle: side
-    split: val
-    verified: false
-    notes: Flat back dumbbell row with lat drive
-
-  - clip_id: ext_dbrow_torso_twist_flaw
-    exercise: Single-Arm Dumbbell Row
-    form_label: torso_swing
-    source_url: https://www.youtube.com/watch?v=pYcpY20QaE8
-    start_time: 01:30
-    end_time: 01:42
-    lifter_id: lifter_scott_herman
-    camera_angle: side
-    split: val
-    verified: false
-    notes: Excessive torso rotation pulling with momentum instead of lat retraction
+- clip_id: bench_pullup_log61
+  exercise: Pull-Up / Chin-Up
+  form_label: good_form
+  source_url: data/benchmark_videos/pullup_online_log61.mp4
+  start_time: 0.0
+  end_time: 12.0
+  lifter_id: swarsin
+  camera_angle: 45_degree
+  split: train
+  verified: true
+  notes: Internal benchmark log 61, strict pull-up set
+  local_filename: bench_pullup_log61.mp4
+  duration_s: 12.0
+- clip_id: bench_pullup_log63
+  exercise: Pull-Up / Chin-Up
+  form_label: good_form
+  source_url: data/benchmark_videos/pullup_online_log63.mp4
+  start_time: 0.0
+  end_time: 14.0
+  lifter_id: swarsin
+  camera_angle: 45_degree
+  split: train
+  verified: true
+  notes: Internal benchmark log 63, strict pull-up set
+  local_filename: bench_pullup_log63.mp4
+  duration_s: 14.0
+- clip_id: bench_latpulldown_log57
+  exercise: Lat Pulldown
+  form_label: good_form
+  source_url: data/benchmark_videos/lat_pulldown_online_log57.mp4
+  start_time: 0.0
+  end_time: 18.0
+  lifter_id: swarsin
+  camera_angle: side
+  split: train
+  verified: true
+  notes: Internal benchmark log 57, neutral grip lat pulldown
+  local_filename: bench_latpulldown_log57.mp4
+  duration_s: 18.0
+- clip_id: bench_latpulldown_log64
+  exercise: Lat Pulldown
+  form_label: good_form
+  source_url: data/benchmark_videos/lat_pulldown_online_log64.mp4
+  start_time: 0.0
+  end_time: 12.0
+  lifter_id: swarsin
+  camera_angle: side
+  split: train
+  verified: true
+  notes: Internal benchmark log 64, wide grip pulldown
+  local_filename: bench_latpulldown_log64.mp4
+  duration_s: 12.0
+- clip_id: ext_pullup_clean_athleanx
+  exercise: Pull-Up / Chin-Up
+  form_label: good_form
+  source_url: https://www.youtube.com/watch?v=eGo4IYlbE5g
+  start_time: 65.0
+  end_time: 78.0
+  lifter_id: lifter_athleanx
+  camera_angle: side
+  split: val
+  verified: true
+  notes: Strict hollow body pull-up full extension
+  local_filename: ext_pullup_clean_athleanx.mp4
+  duration_s: 13.0
+- clip_id: ext_pullup_kipping_flaw
+  exercise: Pull-Up / Chin-Up
+  form_label: torso_swing
+  source_url: https://www.youtube.com/watch?v=eGo4IYlbE5g
+  start_time: 160.0
+  end_time: 172.0
+  lifter_id: lifter_athleanx
+  camera_angle: side
+  split: val
+  verified: true
+  notes: Form flaw demonstration - excessive hip swing and kipping momentum
+  local_filename: ext_pullup_kipping_flaw.mp4
+  duration_s: 12.0
+- clip_id: ext_pullup_partial_rom
+  exercise: Pull-Up / Chin-Up
+  form_label: partial_rom
+  source_url: https://www.youtube.com/watch?v=eGo4IYlbE5g
+  start_time: 195.0
+  end_time: 206.0
+  lifter_id: lifter_athleanx
+  camera_angle: side
+  split: val
+  verified: true
+  notes: Form flaw demonstration - short chin height and half lockout
+  local_filename: ext_pullup_partial_rom.mp4
+  duration_s: 11.0
+- clip_id: ext_latpulldown_clean_nippard
+  exercise: Lat Pulldown
+  form_label: good_form
+  source_url: https://www.youtube.com/watch?v=CAwf7n6Luuc
+  start_time: 70.0
+  end_time: 84.0
+  lifter_id: lifter_nippard
+  camera_angle: side
+  split: test
+  verified: true
+  notes: Strict slight torso lean with chest drive to upper sternum
+  local_filename: ext_latpulldown_clean_nippard.mp4
+  duration_s: 14.0
+- clip_id: ext_latpulldown_swing_flaw
+  exercise: Lat Pulldown
+  form_label: torso_swing
+  source_url: https://www.youtube.com/watch?v=CAwf7n6Luuc
+  start_time: 142.0
+  end_time: 155.0
+  lifter_id: lifter_nippard
+  camera_angle: side
+  split: test
+  verified: true
+  notes: Form flaw demonstration - violent lumbar extension swinging back 45 degrees
+  local_filename: ext_latpulldown_swing_flaw.mp4
+  duration_s: 13.0
+- clip_id: ext_latpulldown_behindneck_partial
+  exercise: Lat Pulldown
+  form_label: partial_rom
+  source_url: https://www.youtube.com/watch?v=CAwf7n6Luuc
+  start_time: 185.0
+  end_time: 196.0
+  lifter_id: lifter_nippard
+  camera_angle: front
+  split: test
+  verified: true
+  notes: Short range of motion without full overhead stretch
+  local_filename: ext_latpulldown_behindneck_partial.mp4
+  duration_s: 11.0
+- clip_id: ext_bbrow_clean_rp
+  exercise: Barbell Row
+  form_label: good_form
+  source_url: https://www.youtube.com/watch?v=G8l_8chR5BE
+  start_time: 48.0
+  end_time: 62.0
+  lifter_id: lifter_rp_mike
+  camera_angle: side
+  split: train
+  verified: true
+  notes: Strict bent-over row, fixed hip hinge angle
+  local_filename: ext_bbrow_clean_rp.mp4
+  duration_s: 14.0
+- clip_id: ext_bbrow_torso_heave
+  exercise: Barbell Row
+  form_label: torso_swing
+  source_url: https://www.youtube.com/watch?v=G8l_8chR5BE
+  start_time: 115.0
+  end_time: 128.0
+  lifter_id: lifter_rp_mike
+  camera_angle: side
+  split: train
+  verified: true
+  notes: Standing up during concentric, torso angle rises 30+ degrees
+  local_filename: ext_bbrow_torso_heave.mp4
+  duration_s: 13.0
+- clip_id: ext_seatedrow_clean_buffdudes
+  exercise: Seated Cable Row
+  form_label: good_form
+  source_url: https://www.youtube.com/watch?v=GZbfZ033f74
+  start_time: 30.0
+  end_time: 44.0
+  lifter_id: lifter_buffdudes
+  camera_angle: side
+  split: train
+  verified: false
+  notes: Strict neutral posture with scapular retraction
+  local_filename: ext_seatedrow_clean_buffdudes.mp4
+  duration_s: 14.0
+- clip_id: ext_seatedrow_momentum_flaw
+  exercise: Seated Cable Row
+  form_label: torso_swing
+  source_url: https://www.youtube.com/watch?v=GZbfZ033f74
+  start_time: 100.0
+  end_time: 112.0
+  lifter_id: lifter_buffdudes
+  camera_angle: side
+  split: train
+  verified: true
+  notes: Excessive rocking forward and backward with lower back momentum
+  local_filename: ext_seatedrow_momentum_flaw.mp4
+  duration_s: 12.0
+- clip_id: ext_dbrow_clean_scott
+  exercise: Single-Arm Dumbbell Row
+  form_label: good_form
+  source_url: https://www.youtube.com/watch?v=pYcpY20QaE8
+  start_time: 45.0
+  end_time: 58.0
+  lifter_id: lifter_scott_herman
+  camera_angle: side
+  split: val
+  verified: true
+  notes: Flat back dumbbell row with lat drive
+  local_filename: ext_dbrow_clean_scott.mp4
+  duration_s: 13.0
+- clip_id: ext_dbrow_torso_twist_flaw
+  exercise: Single-Arm Dumbbell Row
+  form_label: torso_swing
+  source_url: https://www.youtube.com/watch?v=pYcpY20QaE8
+  start_time: 90.0
+  end_time: 102.0
+  lifter_id: lifter_scott_herman
+  camera_angle: side
+  split: val
+  verified: false
+  notes: Excessive torso rotation pulling with momentum instead of lat retraction
+  local_filename: ext_dbrow_torso_twist_flaw.mp4
+  duration_s: 12.0
