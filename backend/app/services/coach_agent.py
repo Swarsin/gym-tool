@@ -43,6 +43,7 @@ CRITICAL RULES:
    - Only reference repetitions that actually exist in the provided metrics (e.g. if total_reps is 4, only discuss reps #1 through #4).
    - Base observations strictly on measured concentric/eccentric ROM%, mean velocity, and tempos.
    - Do NOT invent unobservable internal mechanisms (e.g. do not guess muscle recruitment).
+   - Only cite numbers that appear in the metrics below. If a metric is missing or marked unavailable, say it was not measured rather than estimating it.
 
 2. CONTEXTUAL ELBOW PATH:
    - For wide or angled pull-up handles, upper arm flare angles of 65°–75° are natural and expected. Describe elbow path as "consistent and compatible with the selected wide grip."
@@ -135,7 +136,7 @@ Here are the mathematical metrics from the video analysis:
         return BiomechanicsFeedback(
             scorecard=[
                 ScorecardTier(category="ROM Standardization", rating="Good" if "Consistent" in rom_notes else "Needs Improvement", confidence="HIGH", note=rom_notes),
-                ScorecardTier(category="Body Control & Stability", rating="Good", confidence="HIGH", note="Body control remained steady throughout the set"),
+                ScorecardTier(category="Body Control & Stability", rating="Not Assessed", confidence="LOW", note="Not measured without AI coaching"),
                 ScorecardTier(category="Elbow Path Consistency", rating=elbow_rating, confidence="HIGH", note=elbow_note),
                 ScorecardTier(category="Tempo Control", rating="Good", confidence="HIGH", note=f"Controlled descent averaging {avg_tempo:.1f}s")
             ],

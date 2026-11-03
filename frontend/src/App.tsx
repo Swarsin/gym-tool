@@ -34,6 +34,8 @@ function App() {
   const [resultsData, setResultsData] = useState<any>(null);
   const [loadingPastLog, setLoadingPastLog] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Set when the backend flags an upload (wrong exercise / no lifter) rather than crashing.
+  const [errorTitle, setErrorTitle] = useState<string | null>(null);
 
   // Auth States
   const [session, setSession] = useState<any>(null);
@@ -67,6 +69,7 @@ function App() {
       setAnalysisStatus('processing');
     } else if (state.phase === 'failed') {
       setErrorMessage(state.error || 'Video preparation or upload failed.');
+      setErrorTitle(null);
       setAnalysisStatus('failed');
     } else {
       setAnalysisStatus('idle');
@@ -399,12 +402,13 @@ function App() {
                     message: 'Returned to home page.',
                   });
                 }}
-                onError={(err) => {
+                onError={(err, title) => {
                   setErrorMessage(err || 'ML Pipeline failed to extract biomechanics.');
+                  setErrorTitle(title || null);
                   setAnalysisStatus('failed');
                   addToast({
-                    type: 'error',
-                    title: 'Processing Failed',
+                    type: title ? 'warning' : 'error',
+                    title: title || 'Processing Failed',
                     message: err || 'There was an error analyzing your video.',
                   });
                 }}
@@ -453,12 +457,14 @@ function App() {
                   <AlertTriangle className="w-7 h-7" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-red-400">Analysis Stopped</h3>
-                  <p className="text-gray-300 text-xs sm:text-sm mt-1 leading-relaxed">
+                  <h3 id="analysis-error-title" className="text-xl font-bold text-red-400">{errorTitle || 'Analysis Stopped'}</h3>
+                  <p id="analysis-error-message" className="text-gray-300 text-xs sm:text-sm mt-1 leading-relaxed">
                     {errorMessage || 'The biomechanics engine encountered an unexpected error while processing your video.'}
                   </p>
                   <p className="text-gray-500 text-xs mt-2">
-                    Tip: For best results on mobile, upload a 5–15 second clip with clear lighting and full view of the lifter.
+                    {errorTitle
+                      ? 'Supported exercises: Lat Pulldown, Pull-Up / Chin-Up, Barbell Row, Seated Cable Row and Dumbbell Row. Flagged uploads are not saved to your history.'
+                      : 'Tip: For best results on mobile, upload a 5–15 second clip with clear lighting and full view of the lifter.'}
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">

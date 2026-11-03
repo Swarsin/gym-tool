@@ -23,20 +23,30 @@ def _create_synthetic_test_video(path: str, num_frames: int = 10, width: int = 1
     writer.release()
 
 
-def _mock_frame_data(num_frames: int = 30):
+def _mock_frame_data(num_frames: int = 60):
     frames = []
     for i in range(num_frames):
         t = (i % 30) / 30.0
         travel = 0.40 * np.sin(t * np.pi)
         landmarks = {
-            "shoulder_r": [0.55, 0.30, 0.0, 0.99],
-            "shoulder_l": [0.45, 0.30, 0.0, 0.99],
-            "hip_r": [0.55, 0.65, 0.0, 0.99],
-            "hip_l": [0.45, 0.65, 0.0, 0.99],
-            "elbow_r": [0.60, 0.45 + travel, 0.0, 0.99],
-            "elbow_l": [0.40, 0.45 + travel, 0.0, 0.99],
-            "wrist_r": [0.58, 0.20 + travel * 0.9, 0.0, 0.99],
-            "wrist_l": [0.42, 0.20 + travel * 0.9, 0.0, 0.99],
+            "shoulder_r": [0.55, 0.50 - travel * 0.30, 0.0, 0.99],
+            "shoulder_l": [0.45, 0.50 - travel * 0.30, 0.0, 0.99],
+            "hip_r": [0.55, 0.80 - travel * 0.30, 0.0, 0.99],
+            "hip_l": [0.45, 0.80 - travel * 0.30, 0.0, 0.99],
+            "elbow_r": [0.62, 0.45 + travel * 0.15, 0.0, 0.99],
+            "elbow_l": [0.38, 0.45 + travel * 0.15, 0.0, 0.99],
+            "wrist_r": [0.58, 0.15, 0.0, 0.99],
+            "wrist_l": [0.42, 0.15, 0.0, 0.99],
+        }
+        world = {
+            "shoulder_r": [0.20, 0.10 - travel * 0.50, 0.0, 0.99],
+            "shoulder_l": [-0.20, 0.10 - travel * 0.50, 0.0, 0.99],
+            "hip_r": [0.15, 0.40, 0.0, 0.99],
+            "hip_l": [-0.15, 0.40, 0.0, 0.99],
+            "elbow_r": [0.35 + travel * 0.15, -0.10 + travel * 0.15, 0.0, 0.99],
+            "elbow_l": [-0.35 - travel * 0.15, -0.10 + travel * 0.15, 0.0, 0.99],
+            "wrist_r": [0.25, -0.40, 0.0, 0.99],
+            "wrist_l": [-0.25, -0.40, 0.0, 0.99],
         }
         frames.append({
             "frame_index": i,
@@ -44,7 +54,7 @@ def _mock_frame_data(num_frames: int = 30):
             "timestamp_ms": int((i / 30.0) * 1000),
             "filtered_landmarks": landmarks,
             "display_landmarks": landmarks,
-            "world_landmarks": landmarks,
+            "world_landmarks": world,
             "landmarks": landmarks,
         })
     return frames
@@ -89,6 +99,7 @@ class PipelineFlowTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         self.temp_dir.cleanup()
 
+    @patch("app.services.ml_pipeline.recognize_exercise", return_value=None)
     @patch("app.services.ml_pipeline.PoseExtractor")
     @patch("app.services.coach_agent.CoachAgent.generate_feedback")
     @patch("app.services.video_renderer.render_overlay_video")
@@ -96,7 +107,7 @@ class PipelineFlowTests(unittest.IsolatedAsyncioTestCase):
     @patch("app.services.ml_pipeline.upload_file_to_r2", return_value="https://pub-r2.dev/mock_overlay.mp4")
     @patch("app.services.ml_pipeline.delete_r2_file")
     async def test_successful_two_phase_pipeline_flow(
-        self, mock_del_r2, mock_up_r2, mock_is_r2, mock_render, mock_feedback, mock_pose_cls
+        self, mock_del_r2, mock_up_r2, mock_is_r2, mock_render, mock_feedback, mock_pose_cls, mock_rec
     ):
         """Verifies pending -> processing -> metrics_ready -> completed lifecycle."""
         mock_extractor = MagicMock()
@@ -138,6 +149,63 @@ class PipelineFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(self.mock_log.coach_feedback)
         self.assertEqual(self.mock_log.coach_feedback["scorecard"][0]["category"], "ROM Standardization")
         self.assertEqual(self.mock_log.overlay_video_url, "https://pub-r2.dev/mock_overlay.mp4")
+
+    @patch("urllib.request.urlopen")
+    @patch("app.services.ml_pipeline.PoseExtractor")
+    @patch("app.services.ml_pipeline.recognize_exercise")
+    @patch("app.services.ml_pipeline.delete_r2_file")
+    @patch("app.services.ml_pipeline.is_r2_configured", return_value=True)
+    async def test_pipeline_rejection_on_exercise_mismatch(self, mock_is_r2, mock_del_r2, mock_rec, mock_pose_cls, mock_urlopen):
+        """Verifies that an exercise mismatch flags status as 'rejected' and halts pipeline."""
+        mock_resp = MagicMock()
+        mock_resp.headers.get.return_value = "100"
+        mock_resp.read.side_effect = [b"mock video data", b""]
+        mock_urlopen.return_value.__enter__.return_value = mock_resp
+
+        mock_extractor = MagicMock()
+        mock_extractor.extract_from_video.return_value = _mock_frame_data(60)
+        mock_pose_cls.return_value = mock_extractor
+
+        mock_rec.return_value = {
+            "detected_exercise": "Barbell Squat",
+            "confidence": 0.95,
+            "raw": {"exercise": "other_exercise", "other_exercise_name": "Barbell Squat"}
+        }
+
+        recorded_statuses = []
+        self.mock_db.commit = AsyncMock(side_effect=lambda *args: recorded_statuses.append(self.mock_log.status))
+
+        await process_video_task(
+            log_id=1,
+            video_storage_path="https://pub-r2.dev/uploads/test.mp4",
+            db=self.mock_db
+        )
+
+        self.assertEqual(self.mock_log.status, "rejected")
+        self.assertEqual(self.mock_log.total_reps, 0)
+        self.assertIn("rejection", self.mock_log.raw_timeseries_data)
+        self.assertEqual(self.mock_log.raw_timeseries_data["rejection"]["reason_code"], "exercise_mismatch")
+        self.assertIn("Barbell Squat", self.mock_log.raw_timeseries_data["rejection"]["message"])
+        # Pruned raw video
+        mock_del_r2.assert_called_once()
+
+    @patch("app.services.ml_pipeline.PoseExtractor")
+    async def test_pipeline_rejection_on_no_lifter_detected(self, mock_pose_cls):
+        """Verifies that a video with zero tracked upper-body landmarks is rejected as 'no_person'."""
+        mock_extractor = MagicMock()
+        # Return frames with empty landmarks
+        empty_frames = [{"frame_index": i, "timestamp_s": i/30.0, "filtered_landmarks": {}} for i in range(20)]
+        mock_extractor.extract_from_video.return_value = empty_frames
+        mock_pose_cls.return_value = mock_extractor
+
+        await process_video_task(
+            log_id=1,
+            video_storage_path=self.video_path,
+            db=self.mock_db
+        )
+
+        self.assertEqual(self.mock_log.status, "rejected")
+        self.assertEqual(self.mock_log.raw_timeseries_data["rejection"]["reason_code"], "no_person")
 
     @patch("app.services.ml_pipeline.PoseExtractor")
     async def test_pipeline_failure_safely_marks_log_as_failed(self, mock_pose_cls):

@@ -1,0 +1,26 @@
+name: Supabase & Backend Keep-Alive
+
+on:
+  schedule:
+    # Run every Monday, Wednesday, and Friday at 08:00 UTC
+    - cron: '0 8 * * 1,3,5'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Backend & Database Health
+        run: |
+          echo "Pinging backend status endpoint (executes SELECT 1 on Supabase Postgres)..."
+          RESPONSE=$(curl -s -f "https://gym-backend.delightfulwave-d810eafd.francecentral.azurecontainerapps.io/api/v1/status" || echo "FAIL")
+          echo "Backend response: $RESPONSE"
+          if [ "$RESPONSE" = "FAIL" ]; then
+            echo "::warning ::Backend ping failed or timed out during cold start."
+          fi
+
+      - name: Ping Supabase Auth Gateway
+        run: |
+          echo "Pinging Supabase Auth gateway..."
+          curl -s -f -H "apikey: sb_publishable_-2Dyk06XfGRCb8AxNhmj-A_vCJ0dCyJ" \
+            "https://zbdozzqjehafpndrpkno.supabase.co/auth/v1/health" || echo "Supabase Auth ping completed with notice"

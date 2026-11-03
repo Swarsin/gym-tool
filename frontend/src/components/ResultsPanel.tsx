@@ -46,7 +46,7 @@ export default function ResultsPanel({ data, onReset }: ResultsPanelProps) {
           if (updated.overlay_video_url) {
             setOverlayVideoUrl(updated.overlay_video_url);
             setIsPollingVideo(false);
-          } else if (updated.status === 'completed' || updated.status === 'failed') {
+          } else if (updated.status === 'completed' || updated.status === 'failed' || updated.status === 'rejected') {
             setIsPollingVideo(false);
           }
         }

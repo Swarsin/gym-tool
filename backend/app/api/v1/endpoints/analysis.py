@@ -206,6 +206,7 @@ async def get_workout_history(
         select(Workout, BiomechanicsLog)
         .join(BiomechanicsLog, Workout.id == BiomechanicsLog.workout_id)
         .where(Workout.user_id == current_user.id)
+        .where(BiomechanicsLog.status != "rejected")
         .order_by(Workout.created_at.desc())
     )
 
@@ -251,6 +252,7 @@ async def get_dashboard_stats(
         select(Workout, BiomechanicsLog)
         .join(BiomechanicsLog, Workout.id == BiomechanicsLog.workout_id)
         .where(Workout.user_id == current_user.id)
+        .where(BiomechanicsLog.status != "rejected")
     )
 
     result = await db.execute(stmt)

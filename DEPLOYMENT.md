@@ -41,6 +41,15 @@ Configure your secrets in your hosting environments (or `.env` locally). Never c
 | `VITE_SUPABASE_ANON_KEY` | Supabase public anonymous API key | `your-supabase-anon-key` |
 | `VITE_API_BASE_URL` | Backend API base URL | `https://your-backend.azurecontainerapps.io` |
 
+### Supabase Auth URL Configuration
+To ensure signup verification emails redirect users to your live application instead of `http://localhost:3000`:
+1. Navigate to **Supabase Dashboard $\to$ Authentication $\to$ URL Configuration**.
+2. Set **Site URL** to your production frontend URL (e.g. `https://your-gym-app.vercel.app`).
+3. Under **Redirect URLs**, add both your production domain and local development origin:
+   - `https://your-gym-app.vercel.app/**`
+   - `http://localhost:5173/**`
+4. This ensures that `supabase.auth.signUp` redirect callbacks land on your active domain.
+
 ---
 
 ## Step 2: Backend Deployment (Azure Container Apps)

@@ -28,6 +28,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            // Without this Supabase falls back to the project Site URL (defaults to localhost).
+            // The origin must be listed in Supabase Auth -> URL Configuration -> Redirect URLs.
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (error) throw error;
         

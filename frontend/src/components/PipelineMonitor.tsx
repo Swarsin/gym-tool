@@ -6,7 +6,7 @@ interface PipelineMonitorProps {
   status: string;
   logId: number | null;
   onComplete: (data: any) => void;
-  onError: (errMsg?: string) => void;
+  onError: (errMsg?: string, title?: string) => void;
   onCancel?: () => void;
   accessToken?: string;
   uploadBytes?: number;
@@ -62,6 +62,19 @@ export default function PipelineMonitor({ status, logId, onComplete, onError, on
             stopped = true;
             setStage(5);
             completionTimeout = window.setTimeout(() => onComplete(data), 500);
+          } else if (data.status === 'rejected') {
+            stopped = true;
+            const rejection = data.raw_timeseries_data?.rejection || {};
+            const titles: Record<string, string> = {
+              exercise_mismatch: "Exercise Doesn't Match",
+              no_reps: 'No Reps Detected',
+              no_person: 'No Lifter Detected',
+              no_exercise: 'No Exercise Detected',
+            };
+            onError(
+              rejection.message || "This video doesn't look like the selected exercise.",
+              titles[rejection.reason_code] || "Exercise Doesn't Match",
+            );
           } else if (data.status === 'failed') {
             stopped = true;
             onError('Analysis could not extract clear pose landmarks from this video. Please ensure good lighting and clear view of lifter.');

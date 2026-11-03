@@ -13,8 +13,58 @@ from app.services.biomechanics import analyze_set
 from app.services.video_timing import active_frame_range, frame_times, sampling_fps, timeline_end
 from app.services.coach_agent import CoachAgent
 from app.services.storage import is_r2_configured, upload_file_to_r2, delete_r2_file
+from app.services.exercise_validator import validate_pose_quality, validate_motion, mismatch_result
+from app.services.exercise_recognition import recognize_exercise
 
 from typing import Optional, Dict, Any, List, Tuple
+
+
+def _validation_enabled() -> bool:
+    return os.getenv("EXERCISE_VALIDATION", "on").strip().lower() not in {"off", "0", "false"}
+
+
+async def _prune_raw_upload(video_storage_path: str, supabase_url: Optional[str], supabase_key: Optional[str]):
+    """Delete the raw uploaded phone video to prevent exceeding storage quota."""
+    try:
+        if is_r2_configured() and video_storage_path and ("r2.dev" in video_storage_path or "r2.cloudflarestorage.com" in video_storage_path):
+            try:
+                await asyncio.to_thread(delete_r2_file, video_storage_path)
+            except Exception as r2_prune_err:
+                print(f"Notice: R2 raw video cleanup skipped: {r2_prune_err}")
+        elif supabase_url and supabase_key and video_storage_path:
+            try:
+                raw_rel_path = None
+                if "/workout-videos/" in video_storage_path:
+                    raw_rel_path = video_storage_path.split("/workout-videos/")[-1].split("?")[0]
+                elif video_storage_path.startswith("uploads/"):
+                    raw_rel_path = video_storage_path
+
+                if raw_rel_path and raw_rel_path.startswith("uploads/"):
+                    def _delete_raw_upload():
+                        try:
+                            from supabase import create_client
+                            sb = create_client(supabase_url, supabase_key)
+                            sb.storage.from_("workout-videos").remove([raw_rel_path])
+                        except Exception as sb_e:
+                            print(f"Notice: Supabase client remove skipped: {sb_e}")
+
+                    await asyncio.to_thread(_delete_raw_upload)
+                    print(f"Pruned raw upload to conserve storage quota: {raw_rel_path}")
+            except Exception as prune_err:
+                print(f"Notice: Raw video cleanup skipped: {prune_err}")
+    except Exception as cleanup_err:
+        print(f"Notice: Video cleanup encountered non-fatal error: {cleanup_err}")
+
+
+async def _reject(log_entry, db: AsyncSession, rejection: Dict[str, Any]):
+    """Flag an upload that doesn't contain the selected exercise. Rejected logs are hidden from history."""
+    print(f"[{log_entry.id}] Upload rejected: {rejection.get('reason_code')} - {rejection.get('message')}")
+    log_entry.status = "rejected"
+    log_entry.total_reps = 0
+    log_entry.raw_timeseries_data = {"rejection": rejection}
+    log_entry.coach_feedback = None
+    log_entry.overlay_video_url = None
+    await db.commit()
 
 
 def _rebase_metrics_for_active_range(set_metrics, active_range):
@@ -135,6 +185,19 @@ async def process_video_task(
 
         print(f"[{log_id}] Client trim took {time.perf_counter() - trim_started:.2f}s")
 
+        # Fetch exercise name from workout
+        stmt_w = select(Workout).where(Workout.id == log_entry.workout_id)
+        res_w = await db.execute(stmt_w)
+        workout_entry = res_w.scalar_one_or_none()
+        exercise_name = workout_entry.exercise_name if workout_entry else "Lat Pulldown (Lower-Lat Bias)"
+
+        # Exercise recognition (network-bound) runs concurrently with pose extraction (CPU-bound).
+        validation_on = _validation_enabled()
+        recognition_task = (
+            asyncio.create_task(asyncio.to_thread(recognize_exercise, local_video_path, exercise_name))
+            if validation_on else None
+        )
+
         # 2. Extract Landmarks (defaults to model_complexity=1: pose_landmarker_full.task)
         print(f"[{log_id}] Starting landmark extraction...")
         t0 = time.time()
@@ -145,11 +208,39 @@ async def process_video_task(
         print(f"[{log_id}] Extraction profile: {extractor.last_profile}")
         actual_fps = sampling_fps(frame_data)
 
-        # Fetch exercise name from workout
-        stmt_w = select(Workout).where(Workout.id == log_entry.workout_id)
-        res_w = await db.execute(stmt_w)
-        workout_entry = res_w.scalar_one_or_none()
-        exercise_name = workout_entry.exercise_name if workout_entry else "Lat Pulldown (Lower-Lat Bias)"
+        if validation_on:
+            # Gate 1: is there a lifter in the video at all?
+            quality = validate_pose_quality(frame_data)
+            if not quality["valid"]:
+                if recognition_task:
+                    recognition_task.cancel()
+                await _reject(log_entry, db, quality)
+                await _prune_raw_upload(video_storage_path, supabase_url, supabase_key)
+                return
+
+            # Gate 2: does it look like the selected exercise? (fails open on errors/timeouts)
+            mismatch = None
+            try:
+                mismatch = await asyncio.wait_for(recognition_task, timeout=20)
+            except Exception as rec_err:
+                print(f"[{log_id}] Exercise recognition unavailable: {rec_err}")
+            if mismatch:
+                if mismatch.get("detected_exercise") == "no exercise":
+                    rejection = {
+                        "valid": False,
+                        "reason_code": "no_exercise",
+                        "message": "No exercise detected in this video. Please upload a clip of your set.",
+                        "detected_exercise": None,
+                        "details": {"source": "gemini", "confidence": mismatch.get("confidence")},
+                    }
+                else:
+                    rejection = mismatch_result(
+                        exercise_name, mismatch.get("detected_exercise"),
+                        source="gemini", confidence=mismatch.get("confidence"),
+                    )
+                await _reject(log_entry, db, rejection)
+                await _prune_raw_upload(video_storage_path, supabase_url, supabase_key)
+                return
 
         # 3. Analyze Biomechanics with Exercise-Specific Kinematic Driver
         print(f"[{log_id}] Starting biomechanical analysis...")
@@ -167,6 +258,14 @@ async def process_video_task(
         set_metrics["sampling_fps"] = actual_fps
         # Persist profiling alongside existing JSON metrics, for production comparisons.
         set_metrics["extraction_profile"] = extractor.last_profile if isinstance(extractor.last_profile, dict) else {}
+
+        # Gate 3: do the detected reps look like the selected pull?
+        if validation_on:
+            motion = await asyncio.to_thread(validate_motion, frame_data, set_metrics, exercise_name)
+            if not motion["valid"]:
+                await _reject(log_entry, db, motion)
+                await _prune_raw_upload(video_storage_path, supabase_url, supabase_key)
+                return
 
         def _sanitize_for_json(val):
             if isinstance(val, dict):
@@ -335,35 +434,7 @@ async def process_video_task(
         print(f"[Phase 2] Annotated video overlay completed & uploaded for log #{log_id} (status: completed)")
 
         # 7. Prune the raw uploaded phone video to prevent exceeding storage quota
-        try:
-            if is_r2_configured() and video_storage_path and ("r2.dev" in video_storage_path or "r2.cloudflarestorage.com" in video_storage_path):
-                try:
-                    await asyncio.to_thread(delete_r2_file, video_storage_path)
-                except Exception as r2_prune_err:
-                    print(f"Notice: R2 raw video cleanup skipped: {r2_prune_err}")
-            elif supabase_url and supabase_key and video_storage_path:
-                try:
-                    raw_rel_path = None
-                    if "/workout-videos/" in video_storage_path:
-                        raw_rel_path = video_storage_path.split("/workout-videos/")[-1].split("?")[0]
-                    elif video_storage_path.startswith("uploads/"):
-                        raw_rel_path = video_storage_path
-
-                    if raw_rel_path and raw_rel_path.startswith("uploads/"):
-                        def _delete_raw_upload():
-                            try:
-                                from supabase import create_client
-                                sb = create_client(supabase_url, supabase_key)
-                                sb.storage.from_("workout-videos").remove([raw_rel_path])
-                            except Exception as sb_e:
-                                print(f"Notice: Supabase client remove skipped: {sb_e}")
-
-                        await asyncio.to_thread(_delete_raw_upload)
-                        print(f"Pruned raw upload to conserve storage quota: {raw_rel_path}")
-                except Exception as prune_err:
-                    print(f"Notice: Raw video cleanup skipped: {prune_err}")
-        except Exception as cleanup_err:
-            print(f"Notice: Video cleanup encountered non-fatal error: {cleanup_err}")
+        await _prune_raw_upload(video_storage_path, supabase_url, supabase_key)
 
     except Exception as e:
         print(f"Error processing video: {e}")
@@ -372,7 +443,7 @@ async def process_video_task(
         stmt = select(BiomechanicsLog).where(BiomechanicsLog.id == log_id)
         result = await db.execute(stmt)
         log_entry = result.scalar_one_or_none()
-        if log_entry and log_entry.status not in ("completed", "metrics_ready"):
+        if log_entry and log_entry.status not in ("completed", "metrics_ready", "rejected"):
             log_entry.status = "failed"
             await db.commit()
             
