@@ -59,6 +59,8 @@ backend/pose_landmarker_*.task
 *.avi
 *.webm
 data/benchmark_videos/
+data/dataset/
+data/ml_ready/
 data/raw/
 data/processed/
 data/overlays/

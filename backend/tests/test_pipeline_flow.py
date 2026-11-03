@@ -64,7 +64,7 @@ class PipelineFlowTests(unittest.IsolatedAsyncioTestCase):
     """Fast, offline unit tests for the two-phase async pipeline state machine."""
 
     async def asyncSetUp(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
+        self.temp_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.video_path = os.path.join(self.temp_dir.name, "test_clip.mp4")
         _create_synthetic_test_video(self.video_path, num_frames=10)
 
@@ -97,7 +97,10 @@ class PipelineFlowTests(unittest.IsolatedAsyncioTestCase):
         self.mock_db.close = AsyncMock()
 
     async def asyncTearDown(self):
-        self.temp_dir.cleanup()
+        try:
+            self.temp_dir.cleanup()
+        except Exception:
+            pass
 
     @patch("app.services.ml_pipeline.recognize_exercise", return_value=None)
     @patch("app.services.ml_pipeline.PoseExtractor")
@@ -189,8 +192,9 @@ class PipelineFlowTests(unittest.IsolatedAsyncioTestCase):
         # Pruned raw video
         mock_del_r2.assert_called_once()
 
+    @patch("app.services.ml_pipeline.recognize_exercise", return_value=None)
     @patch("app.services.ml_pipeline.PoseExtractor")
-    async def test_pipeline_rejection_on_no_lifter_detected(self, mock_pose_cls):
+    async def test_pipeline_rejection_on_no_lifter_detected(self, mock_pose_cls, mock_rec):
         """Verifies that a video with zero tracked upper-body landmarks is rejected as 'no_person'."""
         mock_extractor = MagicMock()
         # Return frames with empty landmarks
@@ -207,8 +211,9 @@ class PipelineFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.mock_log.status, "rejected")
         self.assertEqual(self.mock_log.raw_timeseries_data["rejection"]["reason_code"], "no_person")
 
+    @patch("app.services.ml_pipeline.recognize_exercise", return_value=None)
     @patch("app.services.ml_pipeline.PoseExtractor")
-    async def test_pipeline_failure_safely_marks_log_as_failed(self, mock_pose_cls):
+    async def test_pipeline_failure_safely_marks_log_as_failed(self, mock_pose_cls, mock_rec):
         """Verifies that an unhandled extraction error transitions log status to 'failed'."""
         mock_extractor = MagicMock()
         mock_extractor.extract_from_video.side_effect = RuntimeError("Decoder hardware failure")
