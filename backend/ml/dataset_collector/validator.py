@@ -17,7 +17,7 @@ if _backend_dir not in sys.path:
 
 from backend.ml.dataset_collector.manifest import ClipEntry, DatasetManifest
 from app.services.video_processor import PoseExtractor
-from app.services.exercise_validator import validate_pose_quality, validate_motion
+from app.services.exercise_validator import validate_pose_quality, _elbow_flexion_series
 
 
 @dataclass
@@ -124,10 +124,10 @@ class VideoValidator:
             )
 
         # Gate 1: Check human pose detection ratio
-        quality = validate_pose_quality(frame_data, min_ratio=0.35)
-        ratio = quality.get("ratio", 0.0)
+        quality = validate_pose_quality(frame_data)
+        ratio = quality.get("details", {}).get("tracked_frame_ratio", 0.0)
 
-        if not quality["valid"]:
+        if not quality.get("valid", False):
             return QualityCheckResult(
                 clip_id=clip_id,
                 is_valid=False,
@@ -138,8 +138,14 @@ class VideoValidator:
             )
 
         # Gate 2: Check active elbow flexion travel (distinguishes lifting from stationary poses)
-        motion = validate_motion(frame_data, min_reps=0, min_travel_deg=12.0)
-        max_travel = motion.get("max_travel_deg", 0.0)
+        flex_r = _elbow_flexion_series(frame_data, "r")
+        flex_l = _elbow_flexion_series(frame_data, "l")
+        ranges = []
+        for f_arr in (flex_r, flex_l):
+            valid_pts = f_arr[np.isfinite(f_arr)]
+            if len(valid_pts) >= 5:
+                ranges.append(float(np.percentile(valid_pts, 95) - np.percentile(valid_pts, 5)))
+        max_travel = max(ranges) if ranges else 0.0
 
         if max_travel < 12.0:
             return QualityCheckResult(
@@ -149,7 +155,7 @@ class VideoValidator:
                 fps=fps, width=width, height=height, duration_s=round(duration, 2),
                 pose_quality_ratio=round(ratio, 3),
                 max_elbow_travel_deg=round(max_travel, 1),
-                details={"motion": motion}
+                details={"max_travel_deg": max_travel}
             )
 
         return QualityCheckResult(
@@ -159,7 +165,7 @@ class VideoValidator:
             fps=fps, width=width, height=height, duration_s=round(duration, 2),
             pose_quality_ratio=round(ratio, 3),
             max_elbow_travel_deg=round(max_travel, 1),
-            details={"rep_count": motion.get("reps_detected", 0)}
+            details={"max_travel_deg": max_travel}
         )
 
     def verify_manifest(

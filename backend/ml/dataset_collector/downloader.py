@@ -21,6 +21,19 @@ class VideoDownloader:
         os.makedirs(self.output_dir, exist_ok=True)
         self.ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 
+        # yt-dlp expects an executable named 'ffmpeg.exe' in PATH for range downloads
+        bin_dir = os.path.dirname(self.ffmpeg_exe)
+        standard_ffmpeg = os.path.join(bin_dir, "ffmpeg.exe")
+        if not os.path.exists(standard_ffmpeg):
+            try:
+                shutil.copyfile(self.ffmpeg_exe, standard_ffmpeg)
+            except Exception:
+                pass
+        if os.path.exists(standard_ffmpeg):
+            self.ffmpeg_exe = standard_ffmpeg
+        if bin_dir not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+
     def get_clip_destination(self, entry: ClipEntry) -> str:
         """Returns the local path where this clip should be stored."""
         # Group clips into subdirectories by exercise to keep dataset organized
@@ -185,3 +198,4 @@ class VideoDownloader:
         print(f"\nDownload Batch Complete: {len(results['succeeded'])} succeeded, "
               f"{len(results['skipped'])} existing/skipped, {len(results['failed'])} failed.")
         return results
+
